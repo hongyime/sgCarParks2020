@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Find the nearest HDB car park using SVY21 coordinates and a saved Singapore car park dataset.">
+  <meta name="referrer" content="no-referrer">
+  <title>Singapore Carparks · The Prawn Projects</title>
+  <link rel="stylesheet" href="{{ style_url }}">
+  {% if static_mode %}<script type="module" src="{{ script_url }}"></script>{% endif %}
+</head>
+<body>
+  <a class="skip-link" href="#lookup">Skip to car park search</a>
+  <div class="shell">
+    <header class="masthead">
+      <a class="brand" href="https://theprawnprojects.vercel.app/">THE PRAWN PROJECTS <span aria-hidden="true">↗</span></a>
+      <span class="edition">SINGAPORE / CARPARKS</span>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <span class="parking-sign" aria-hidden="true">P</span>
+        <div><p class="eyebrow">A little help finding a place to park.</p>
+          <h1 id="page-title">Your nearest<br>HDB car park.</h1>
+          <p class="lede">Enter your SVY21 coordinates to find the closest car park in our saved Singapore dataset.</p>
+        </div>
+      </section>
+      <div class="workspace">
+        <section class="card lookup" id="lookup" aria-labelledby="lookup-title">
+          <h2 id="lookup-title">Where are you?</h2>
+          <p id="coordinate-help">Use SVY21 X and Y in metres. These are Singapore grid coordinates, not latitude and longitude.</p>
+          <form id="search-form" action="{{ form_action }}" method="get" novalidate{% if static_mode %} data-catalog-url="{{ catalog_url }}" data-source-hash="{{ source_hash }}" data-catalog-count="{{ catalog_count }}"{% endif %}>
+            <div class="coordinates">
+              <div><label for="xcoords">X <span>Easting / metres</span></label>
+                <input id="xcoords" name="xcoords" type="text" inputmode="decimal" maxlength="64" placeholder="28000" value="{{ xcoords }}" required aria-describedby="coordinate-help"{% if error %} aria-invalid="true"{% endif %}></div>
+              <div><label for="ycoords">Y <span>Northing / metres</span></label>
+                <input id="ycoords" name="ycoords" type="text" inputmode="decimal" maxlength="64" placeholder="38000" value="{{ ycoords }}" required aria-describedby="coordinate-help"{% if error %} aria-invalid="true"{% endif %}></div>
+            </div>
+            <button class="find-button" type="submit"{% if static_mode %} disabled{% endif %}>Find nearest car park <span aria-hidden="true">→</span></button>
+          </form>
+          <p class="example">Just trying it? <a href="{{ form_action }}?xcoords=28000&amp;ycoords=38000" id="example-link">Use example coordinates</a></p>
+          {% if static_mode %}<noscript><p class="notice">Enable JavaScript to search this site. The saved <a href="hdb-carpark-information.csv">car park CSV</a> is also available to download.</p></noscript>{% endif %}
+          <p id="search-status" class="status" role="status"></p>
+          <div id="search-error" class="notice" role="alert" tabindex="-1"{% if not error %} hidden{% endif %}>{{ error or '' }}</div>
+        </section>
+        <section class="card result-panel" aria-label="Nearest car park">
+          <div id="empty-result"{% if result %} hidden{% endif %}>
+            <p class="eyebrow">THE CLOSEST MATCH</p>
+            <h2>A spot to start.</h2>
+            <p>Your nearest car park will appear here, with its address and straight-line distance.</p>
+            <div class="grid-key" aria-hidden="true"><span>Y ↑</span><span>+<br>→ X</span></div>
+          </div>
+          <div id="search-result" tabindex="-1"{% if not result %} hidden{% endif %}>
+            <p class="eyebrow">NEAREST IN THE SAVED DATASET</p>
+            <h2 class="carpark-number" id="carpark-number">{{ result.car_park_no if result else '' }}</h2>
+            <p class="address" id="carpark-address">{{ result.address if result else '' }}</p>
+            <dl class="result-details">
+              <div><dt>Straight-line distance</dt><dd id="carpark-distance">{% if result %}{{ (result.distance + 0.5)|int }} m{% endif %}</dd></div>
+              <div><dt>Car park type</dt><dd id="carpark-type">{{ result.car_park_type if result else '' }}</dd></div>
+            </dl>
+            <p class="small">Distance is an estimate across the map, not a walking or driving route.</p>
+          </div>
+        </section>
+      </div>
+      <aside class="dataset-note" aria-label="About the data">
+        <strong>{{ '{:,}'.format(catalog_count) }} car parks. One saved snapshot.</strong>
+        <p>This tool uses HDB open data saved with the project. It does not show current parking availability, prices or closures. Check the car park signs when you arrive.</p>
+      </aside>
+    </main>
+    <footer><a href="{{ home_url }}">Singapore Carparks</a><a href="https://github.com/hongyime/sgCarParks2020">View source <span aria-hidden="true">↗</span></a></footer>
+  </div>
+</body>
+</html>

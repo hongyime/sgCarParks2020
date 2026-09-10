@@ -19,6 +19,7 @@
 !.editorconfig
 !.nvmrc
 !.node-version
+!.nojekyll
 !.python-version
 !.tool-versions
 !.prettierrc*
