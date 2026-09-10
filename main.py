@@ -1,145 +1,146 @@
+"""Nearest HDB car park lookup against the preserved, bundled CSV snapshot."""
+
+import csv
 import math
-from flask import Flask, render_template, request, redirect
-from copy import copy
-# Task 1.1
-# Write your code here
-carpark_data = []
-def store():
-    with open("hdb-carpark-information.csv", 'r') as f:
-        f.readline()
-        for line in f.readlines():
-            line_nobreak = line.strip('\n')
-            line_nocomma = line_nobreak.split(',')
-            d = {}
-            d['car_park_no'] = line_nocomma[0]
-            d['address'] = line_nocomma[1]
-            d['x_coord'] = line_nocomma[2]
-            d['y_coord'] = line_nocomma[3]
-            d['car_park_type'] = line_nocomma[4]
-            d['type_of_parking_system'] = line_nocomma[5]
-            d['short_term_parking'] = line_nocomma[6]
-            d['free_parking'] = line_nocomma[7]
-            d['night_parking'] = line_nocomma[8]
-            d['car_park_decks'] = line_nocomma[9]
-            d['gantry_height'] = line_nocomma[10]
-            d['car_park_basement']  = line_nocomma[11]
-            carpark_data.append(d)
-    return carpark_data
-#print(store())
-# Task 1.2
-# Write your code here
+import re
+from pathlib import Path
+from typing import Optional
+
+from flask import Flask, render_template, request, url_for
+
+ROOT = Path(__file__).resolve().parent
+DATA_PATH = ROOT / "hdb-carpark-information.csv"
+FIELDS = (
+    "car_park_no", "address", "x_coord", "y_coord", "car_park_type",
+    "type_of_parking_system", "short_term_parking", "free_parking",
+    "night_parking", "car_park_decks", "gantry_height", "car_park_basement",
+)
+DECIMAL = re.compile(r"^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$")
+COORDINATE_ERROR = "Enter both X and Y as finite numbers in SVY21 metres."
+
+
+class CatalogUnavailable(ValueError):
+    """The saved car park catalog cannot answer a query."""
+
+
+def coordinate(value: object) -> float:
+    text = str(value).strip()
+    if len(text) > 64 or not DECIMAL.fullmatch(text):
+        raise ValueError(COORDINATE_ERROR)
+    number = float(text)
+    if not math.isfinite(number):
+        raise ValueError(COORDINATE_ERROR)
+    return number
+
+
+def store(path: Optional[Path] = None) -> list[dict[str, str]]:
+    """Read each CSV row once; never append to or modify a shared catalog."""
+    with (Path(path) if path is not None else DATA_PATH).open(
+        encoding="utf-8-sig", newline=""
+    ) as source:
+        reader = csv.DictReader(source)
+        if reader.fieldnames != list(FIELDS):
+            raise CatalogUnavailable("The saved car park data has an invalid header.")
+        rows = []
+        for row in reader:
+            if None in row or any(row[field] is None for field in FIELDS):
+                raise CatalogUnavailable("The saved car park data has an incomplete row.")
+            if not row["car_park_no"] or not row["address"]:
+                raise CatalogUnavailable("The saved car park data has an unnamed entry.")
+            coordinate(row["x_coord"])
+            coordinate(row["y_coord"])
+            rows.append(row)
+    return rows
+
+
 carparks = store()
-#print(carparks[11])
-counter_SC = []
-counter_MSC = []
-for i in carparks:
-    if i["car_park_type"] == "SURFACE CAR PARK":
-        counter_SC.append(i["car_park_type"])
-    if i["car_park_type"] == "MULTI-STOREY CAR PARK":
-        counter_MSC.append(i["car_park_type"])
-total_number_of_surface = len(counter_SC)
-total_number_of_multi = len(counter_MSC)
-#print(total_number_of_surface)
-#print(total_number_of_multi)
-# Task 1.3
-# Write your code here
-carparks = store()
-#print(carparks[:11])
-def calculate(x1,y1,x0,y0):
-    import math
-    distance = math.sqrt((x1 - x0)**2 + (y1 - y0)**2)
+carpark_data = carparks  # Keep the original learning-project interface.
+total_number_of_surface = sum(row["car_park_type"] == "SURFACE CAR PARK" for row in carparks)
+total_number_of_multi = sum(row["car_park_type"] == "MULTI-STOREY CAR PARK" for row in carparks)
+
+
+def calculate(x1: float, y1: float, x0: float, y0: float) -> float:
+    distance = math.hypot(x1 - x0, y1 - y0)
+    if not math.isfinite(distance):
+        raise ValueError("Coordinates are too large. Enter SVY21 coordinates in metres.")
     return distance
 
-def input_coords(x,y):
-    input_x = float(x)
-    input_y = float(y)
-    distances = []
-    #print(carparks[0]['x_coord'])
-    for i in carparks:
-        carpark_x = float(i['x_coord'])
-        #print(type(float(carpark_x)))
-        carpark_y = float(i['y_coord'])
-        #print(float(i['y_coord']))
-        distance = calculate(input_x,input_y,carpark_x,carpark_y)
-        distances.append(distance)
-    counter = 0
-    for distance in distances:
-        carparks[counter]['distance'] = distance
-        counter += 1
-    #print(carparks[0:11])
-    return carparks
 
-def sortByDistance(x,y):
-    input_coords(x,y)
-    #print(type(carparks))
-    #print(len(carparks))    
-    for i in range(0,len(carparks)): #2nd to last elements
-        pop = carparks.pop(i)
-        #print(type(pop))
-        #print(pop)
-        pop_distance = pop["distance"]
-        #print(pop_distance)
-        found = False
-        for j in range(0,i): #first to i-1 elements
-            this_distance = carparks[j]["distance"]
-            #print(this_distance)
-            if not found and pop_distance < this_distance:
-                carparks.insert(j, pop)
-                found = True
-        if not found:
-            carparks.insert(i, pop)
-    #print(carparks[:3])
-    return carparks
-# Task 1.4
-# Write your code here
-def nearestCarpark(x_coord, y_coord):
-    sorted_carparks = sortByDistance(x_coord, y_coord)
-    nearest = sorted_carparks[0]
-    return nearest["car_park_no"], nearest['address']
-# Task 1.5
-# Write your code here
+def input_coords(x: object, y: object) -> list[dict]:
+    input_x, input_y = coordinate(x), coordinate(y)
+    return [
+        {**row, "distance": calculate(input_x, input_y, float(row["x_coord"]), float(row["y_coord"]))}
+        for row in carparks
+    ]
+
+
+def sortByDistance(x: object, y: object) -> list[dict]:
+    """Return a stable sorted copy for callers that need every distance."""
+    return sorted(input_coords(x, y), key=lambda row: row["distance"])
+
+
+def nearest_entry(x: object, y: object, catalog: Optional[list[dict]] = None) -> dict:
+    input_x, input_y = coordinate(x), coordinate(y)
+    rows = carparks if catalog is None else catalog
+    nearest, best_distance = None, math.inf
+    for row in rows:
+        distance = calculate(input_x, input_y, float(row["x_coord"]), float(row["y_coord"]))
+        if distance < best_distance:
+            nearest, best_distance = row, distance
+    if nearest is None:
+        raise CatalogUnavailable("The saved car park data is unavailable. Please try again later.")
+    return {**nearest, "distance": best_distance}
+
+
+def nearestCarpark(x_coord: object, y_coord: object) -> tuple[str, str]:
+    nearest = nearest_entry(x_coord, y_coord)
+    return nearest["car_park_no"], nearest["address"]
+
 
 app = Flask(__name__)
 
+
 @app.after_request
 def add_security_headers(response):
-    """Add security headers to all responses."""
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    if request.endpoint == "static" and response.status_code < 400:
+        response.cache_control.public = True
+        response.cache_control.max_age = 3600
+        response.cache_control.no_cache = None
+    else:
+        response.headers["Cache-Control"] = "no-store"
     return response
 
-@app.route('/', methods=['GET'])
+
+def page_context(**values) -> dict:
+    return {
+        "static_mode": False, "form_action": url_for("search"),
+        "home_url": url_for("root"), "style_url": url_for("static", filename="style.css"),
+        "catalog_count": len(carparks), "xcoords": "", "ycoords": "",
+        "result": None, "error": None, **values,
+    }
+
+
+@app.get("/")
 def root():
-   	return render_template('index.html')
-#index.html should have buttons, that redirect to "/search" page
+    return render_template("index.html", **page_context())
 
-@app.route('/search', methods=['GET'])
+
+@app.get("/search")
 def search():
-	print(request.args)
-	# import pdb; pdb.set_trace()
-	# if 'xcoords' in request.args.get("xcoords") and 'ycoords' in request.args.get("ycoords"):
-		# print(request.args)
-	xcoords = float(request.args.get("xcoords"))
-	ycoords = float(request.args.get("ycoords"))
-	number, address = nearestCarpark(xcoords, ycoords)
-	return render_template('search.html', xcoords=xcoords, ycoords=ycoords, number=number, address=address)
-# #search.html should display x, y, nearest where appropriate
+    values = {name: request.args.get(name, "") for name in ("xcoords", "ycoords")}
+    try:
+        if any(len(request.args.getlist(name)) != 1 for name in values):
+            raise ValueError(COORDINATE_ERROR)
+        result = nearest_entry(values["xcoords"], values["ycoords"])
+        return render_template("search.html", **page_context(**values, result=result))
+    except CatalogUnavailable as error:
+        return render_template("search.html", **page_context(**values, error=str(error))), 503
+    except ValueError as error:
+        return render_template("search.html", **page_context(**values, error=str(error))), 400
 
-# @app.route('/')
-# def root():
-#     return render_template('index.html')
 
-# @app.route('/search')
-# def search():
-#     if 'x' in request.args and 'y' in request.args:
-#         x = float(request.args['x'])
-#         y = float(request.args['y'])
-#         cp_number, cp_address = nearestCarpark(x, y)
-#         # cp_name = nearest_cp['car_park_no']
-#         return render_template('search.html', x=x, y=y, cp_number=cp_number, cp_address=cp_address)
-
-if __name__ == '__main__':
-    app.run("0.0.0.0",debug=False, use_reloader=True)
+if __name__ == "__main__":
+    app.run(host="127.0.0.1", debug=False, use_reloader=False)
