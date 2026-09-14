@@ -4,6 +4,7 @@
 
 
 
+
 # AI / editor dot directories (managed via sourcerepo)
 .*
 !.github/
@@ -19,7 +20,6 @@
 !.editorconfig
 !.nvmrc
 !.node-version
-!.nojekyll
 !.python-version
 !.tool-versions
 !.prettierrc*
