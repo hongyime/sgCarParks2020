@@ -1,11 +1,10 @@
 # Current status
 
-2026-09-11: The Carparks repair is published on master through PR #113 (implementation dd7a8a4, label correction 28ef614, merge c6291ff3f4a886e8a7bca594c00c589f479f7286).
+2026-09-16: wave-2b baseline review complete. No open PRs, no secrets. Repo healthy.
 
-- The public application at https://hongyime.github.io/sgCarParks2020/ now performs nearest-carpark searches. Pages confirmed the exact merge commit; live HTML, CSS, JavaScript, derived catalog and original CSV matched reviewed bytes. Desktop/390px/320px searches, keyboard operation, deep links/back navigation and one download across repeated searches passed.
-- CSV parsing handles quoted commas/newlines/BOMs, resolves paths independently of the working directory and loads once. Queries do not mutate shared rows; nearest lookup is O(n). Input errors return clear validation feedback instead of HTTP 500.
-- All 2,137 source records and the original CSV bytes are preserved (SHA-256 affba0887ff35fcd471a5d5996468dcedf91e806afa282638987165c8a583939). The 173,842-byte derived catalog has every source ID and matching lookup fields. It downloads on demand, is reused on that page, and has a 10-second deadline/1 MiB response cap. No polling or Vercel/Supabase API calls were added.
-- Verification: 19 Python tests and 12 Node tests passed on Linux, including a real Gunicorn threaded worker. Local browser verification passed ten scenarios including failed-download retry, stale-result prevention, escaped source text and no-JavaScript Flask operation. The nine installed Python runtime packages have no known vulnerabilities in the checked audit. Seven main release workflows passed, including Pages and dependency graph generation; the corrected PR labeler also passed.
-- Static analysis still reports shared workflow/action-tag hygiene warnings. The template href warning was reviewed: links use fixed application routes/build paths, not user-supplied URLs. This release is not a claim of zero repository security alerts.
-- The separate Flask interface is repaired/tested; its hosted production runtime is unverified and the old Heroku URL returns 404. Data remains in the existing public CSV, not Supabase. Storage migration and measured portfolio quota headroom remain separate work; no records were deleted or moved and no paid service was provisioned.
-- Keep both histories: master is the default/Pages branch; origin/main is divergent. Portfolio evidence and remaining work are maintained at https://aoo181uudk96.postplan.dev.
+Prior state (2026-09-11): PR #113 merged — nearest-carpark search on Pages restored. Public app https://hongyime.github.io/sgCarParks2020/ verified. 2,137 CSV records preserved (SHA-256 affba0887ff35fcd471a5d5996468dcedf91e806afa282638987165c8a583939). 19 Python tests + 12 Node tests passed. master is the default/Pages branch; main is divergent (do not merge).
+
+Open follow-ups (from 2026-09-11):
+- Flask production hosting unverified (old Heroku URL 404)
+- Supabase data migration still potential future work
+- Shared workflow/action-tag hygiene warnings remain
