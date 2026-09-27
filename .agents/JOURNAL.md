@@ -5,3 +5,5 @@
 - 2026-09-11: PR verification exposed a legacy Labeler configuration path that does not exist. Use the repository's existing labels.yml and explicit label-write permissions; retain the workflow and its history.
 - 2026-09-11: PR #113 is merged and the exact Pages release c6291ff is browser/byte verified. Preserve the original CSV and both branch histories. Flask production hosting, a possible Supabase data migration, and shared workflow hygiene remain explicit follow-ups.
 - 2026-09-16: wave-2b baseline review (opencode Sisyphus-Junior). No open PRs, no hardcoded secrets. Repo healthy; production release 34d5be8 confirmed. Flask production hosting and shared workflow hygiene remain open follow-ups from 2026-09-11.
+
+- 2026-09-27: Remove the optional personal security contact and preserve private reporting guidance through a reviewed maintenance pull request.

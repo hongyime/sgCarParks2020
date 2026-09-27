@@ -8,3 +8,7 @@ Open follow-ups (from 2026-09-11):
 - Flask production hosting unverified (old Heroku URL 404)
 - Supabase data migration still potential future work
 - Shared workflow/action-tag hygiene warnings remain
+
+## Privacy maintenance - 2026-09-27
+
+Remove the optional personal security contact while retaining private vulnerability-reporting guidance. The narrow documentation patch is prepared from the current default branch; staged whitespace and the inherited identity hook are publication checks. Application behavior is unchanged.
